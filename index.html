@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - StaffNet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#135bec', surface: '#ffffff', background: '#f6f6f8' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background font-sans text-slate-800">
+
+    <div class="flex min-h-screen w-full">
+        <!-- Left Brand Panel -->
+        <div class="hidden lg:flex w-1/2 flex-col justify-between bg-white p-12 m-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-white">
+                <span class="material-symbols-outlined text-3xl">bolt</span>
+            </div>
+            <div class="max-w-lg">
+                <h1 class="text-5xl font-bold mb-6 text-slate-900">Manage your staff with ease.</h1>
+                <p class="text-slate-500 text-xl leading-relaxed">Streamline workflows, track progress, and collaborate effectively with your entire team in one place.</p>
+            </div>
+            <p class="text-sm text-slate-400">© 2024 StaffNet. All rights reserved.</p>
+        </div>
+
+        <!-- Right Form Panel -->
+        <div class="flex w-full lg:w-1/2 items-center justify-center p-8">
+            <div class="w-full max-w-md space-y-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900">Log in to your account</h2>
+                    <p class="mt-2 text-slate-500">Welcome back! Please enter your details.</p>
+                </div>
+
+                <!-- Note: The form action points to dashboard.html -->
+                <form onsubmit="event.preventDefault(); window.location.href='dashboard.html'" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Email address</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">mail</span>
+                            <input type="email" value="admin@staffnet.com" class="block w-full pl-10 rounded-lg border-slate-300 focus:ring-primary focus:border-primary py-2.5" placeholder="Enter your email" required>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Password</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">lock</span>
+                            <input type="password" value="password" class="block w-full pl-10 rounded-lg border-slate-300 focus:ring-primary focus:border-primary py-2.5" placeholder="Enter your password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">Log In</button>
+                </form>
+
+                <p class="text-center text-sm text-slate-500">
+                    Don't have an account? <a href="#" class="font-medium text-primary hover:underline">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
