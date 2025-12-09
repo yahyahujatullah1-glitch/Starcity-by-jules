@@ -16,18 +16,23 @@ async function switchTab(tabId) {
 
     // Show View
     const view = document.getElementById(`view-${tabId}`);
-    view.classList.remove('hidden');
-    view.classList.add('animate-fade');
+    if(view) {
+        view.classList.remove('hidden');
+        view.classList.add('animate-fade');
+    }
 
     // Highlight Nav
     const btn = document.getElementById(`nav-${tabId}`);
-    btn.classList.add('bg-primary/10', 'text-primary');
-    btn.classList.remove('text-slate-500');
+    if(btn) {
+        btn.classList.add('bg-primary/10', 'text-primary');
+        btn.classList.remove('text-slate-500');
+    }
 
     await refreshData();
     if(tabId === 'staff') renderStaff();
     if(tabId === 'tasks') renderTasks();
     if(tabId === 'chat') renderChat();
+    if(tabId === 'admin') renderAdmin();
 }
 
 // --- 2. RENDER FUNCTIONS ---
@@ -74,14 +79,45 @@ function renderChat() {
                     <div class="flex items-baseline gap-2 ${msg.isMe ? 'flex-row-reverse' : ''}">
                         <span class="font-bold text-sm text-slate-900">${msg.sender}</span>
                     </div>
-                    <div class="bg-${msg.isMe ? 'primary' : 'slate-100'} p-3 rounded-2xl ${msg.isMe ? 'rounded-tr-none text-white' : 'rounded-tl-none text-slate-800'} text-sm shadow-sm">
+                    <div class="bg-${msg.isMe ? 'primary' : 'slate-100'} p-3 rounded-2xl ${msg.isMe ? 'rounded-tr-none text-white' : 'rounded-tl-none text-slate-800'} text-sm shadow-sm break-words max-w-full">
                         ${msg.text}
                     </div>
                 </div>
             </div>`;
     });
     // Fix scroll to bottom
-    setTimeout(() => container.scrollTop = container.scrollHeight, 100);
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+}
+
+function renderAdmin() {
+    // 1. Users Table
+    const tbody = document.getElementById('admin-user-table-body');
+    if(tbody) {
+        tbody.innerHTML = '';
+        db.staff.forEach(user => {
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="px-6 py-4 font-bold text-sm">${user.name}</td>
+                    <td class="px-6 py-4 text-sm">${user.role}</td>
+                    <td class="px-6 py-4"><button onclick="deleteStaff('${user.id}', '${user.name}')" class="text-red-500 text-xs font-bold hover:underline">DELETE</button></td>
+                </tr>`;
+        });
+    }
+
+    // 2. Logs
+    const logContainer = document.getElementById('audit-log-container');
+    if(logContainer) {
+        logContainer.innerHTML = '';
+        db.logs.forEach(log => {
+            logContainer.innerHTML += `
+                <div class="text-xs text-slate-400 border-b border-slate-700 py-1 font-mono">
+                    <span class="text-green-400">[${new Date(log.created_at).toLocaleTimeString()}]</span> ${log.action}
+                </div>
+            `;
+        });
+    }
 }
 
 // --- 3. EVENT HANDLERS ---
@@ -118,13 +154,20 @@ async function sendMessage() {
     if(!input.value.trim()) return;
     await sendChatDB(input.value);
     input.value = '';
-    // Realtime listener will auto-update UI
+    // Realtime listener in db.js will update UI
 }
 
 // --- 4. PROOF LINK LOGIC ---
 function openTaskModal(title, priority, status) {
-    document.getElementById('task-detail-title').value = title;
-    document.getElementById('task-detail-status').innerText = status;
+    const titleInput = document.getElementById('task-detail-title');
+    const statusLabel = document.getElementById('task-detail-status');
+    if(titleInput) titleInput.value = title;
+    if(statusLabel) statusLabel.innerText = status;
+    
+    // Clear old links
+    const list = document.getElementById('proof-list');
+    if(list) list.innerHTML = '';
+
     toggleModal('task-detail-modal');
 }
 
@@ -133,7 +176,7 @@ function saveProofLink() {
     if(link) {
         const container = document.getElementById('proof-list');
         container.innerHTML += `
-            <div class="p-3 border rounded-xl flex items-center gap-4 bg-slate-50 mt-2">
+            <div class="p-3 border rounded-xl flex items-center gap-4 bg-slate-50 mt-2 animate-fade">
                 <div class="w-10 h-10 bg-blue-100 text-blue-600 flex items-center justify-center rounded"><span class="material-symbols-outlined">link</span></div>
                 <div class="flex-1 overflow-hidden"><a href="${link}" target="_blank" class="font-bold text-sm text-blue-600 hover:underline truncate block w-48">${link}</a></div>
                 <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-bold">Pending</span>
@@ -143,10 +186,16 @@ function saveProofLink() {
     }
 }
 
-function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+function toggleModal(id) { 
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden'); 
+}
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
     switchTab('dashboard');
-    document.getElementById('chat-input').addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
+    const chatInput = document.getElementById('chat-input');
+    if(chatInput) {
+        chatInput.addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
+    }
 });
