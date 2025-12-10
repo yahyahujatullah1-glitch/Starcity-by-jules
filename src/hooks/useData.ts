@@ -33,7 +33,7 @@ export function useTasks() {
   return { tasks, loading, refresh: fetchTasks };
 }
 
-// --- CHAT HOOK (REALTIME FIXED) ---
+// --- CHAT HOOK (ROBUST) ---
 export function useChat() {
   const [messages, setMessages] = useState<any[]>([]);
   
@@ -48,41 +48,49 @@ export function useChat() {
   };
 
   useEffect(() => {
-    // 1. Initial Load
     fetchMessages();
 
-    // 2. Realtime Subscription
-    console.log("Connecting to Realtime Chat...");
+    // Realtime Listener
     const channel = supabase.channel('public:messages')
       .on(
         'postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
-          console.log("🔴 New Message Received from DB:", payload);
-          // When a new message arrives, re-fetch to get the profile data (avatar/name)
+          console.log("New message received:", payload);
           fetchMessages();
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') console.log("✅ Chat Connected!");
-      });
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const sendMessage = async (text: string) => {
     try {
-      // 1. Get User
+      // 1. OPTIMISTIC UPDATE (Show immediately)
+      const tempId = Date.now();
+      const tempMessage = {
+        id: tempId,
+        content: text,
+        sender_id: 'temp',
+        created_at: new Date().toISOString(),
+        profiles: {
+            full_name: 'Admin User',
+            avatar_url: 'https://i.pravatar.cc/150?u=admin'
+        }
+      };
+      setMessages((prev) => [...prev, tempMessage]);
+
+      // 2. Get Real User ID
       let { data: user } = await supabase.from('profiles').select('id').eq('full_name', 'Admin User').single();
       
-      // Fallback if Admin missing
+      // Self-healing: Create user if missing
       if (!user) {
         const { data: anyUser } = await supabase.from('profiles').select('id').limit(1).single();
         user = anyUser;
       }
-
-      // Self-heal if DB empty
       if (!user) {
+        // Create Admin if database is totally empty
         const { data: newUser } = await supabase.from('profiles').insert([{
             full_name: 'Admin User',
             email: 'admin@staffnet.com',
@@ -91,19 +99,15 @@ export function useChat() {
         user = newUser;
       }
 
-      if (!user) throw new Error("No user found");
-
-      // 2. Send to DB
-      const { error } = await supabase.from('messages').insert([{ 
-        content: text, 
-        sender_id: user.id, 
-        channel_id: 'general' 
-      }]);
-
-      if (error) throw error;
-
-      // Note: We don't manually update state here anymore because 
-      // the Realtime subscription above will catch the INSERT and update it for everyone.
+      // 3. Send to Database
+      if (user) {
+        const { error } = await supabase.from('messages').insert([{ 
+            content: text, 
+            sender_id: user.id, 
+            channel_id: 'general' 
+        }]);
+        if (error) throw error;
+      }
 
     } catch (err) {
       console.error("Send Error:", err);
