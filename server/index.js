@@ -8,8 +8,8 @@ app.use(cors());
 app.use(express.json());
 
 // --- 1. CONNECT TO MONGODB ---
-// ✅ YOUR CREDENTIALS ARE ADDED HERE
-const MONGO_URI = "mongodb+srv://yahyabaloch:Baloch*123*@cluster0.zkxkenx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// ✅ YOUR EXACT CREDENTIALS
+const MONGO_URI = "mongodb+srv://yahyabaloch:Baloch*123*@cluster0.zkxkenx.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected Successfully"))
@@ -91,21 +91,25 @@ app.post('/api/chat', async (req, res) => {
 
 // SEED (Run this once to create your Admin User)
 app.get('/api/seed', async (req, res) => {
-  await User.deleteMany({});
-  await Role.deleteMany({});
-  
-  await Role.create({ name: 'Admin', color: 'bg-red-600' });
-  await Role.create({ name: 'Staff', color: 'bg-blue-600' });
+  try {
+    await User.deleteMany({});
+    await Role.deleteMany({});
+    
+    await Role.create({ name: 'Admin', color: 'bg-red-600' });
+    await Role.create({ name: 'Staff', color: 'bg-blue-600' });
 
-  await User.create({
-    full_name: 'Admin User',
-    email: 'admin@staffnet.com',
-    password: 'password123',
-    role: 'Admin',
-    avatar_url: 'https://i.pravatar.cc/150?u=admin'
-  });
-  
-  res.send("✅ Database Seeded! Login with admin@staffnet.com / password123");
+    await User.create({
+      full_name: 'Admin User',
+      email: 'admin@staffnet.com',
+      password: 'password123',
+      role: 'Admin',
+      avatar_url: 'https://i.pravatar.cc/150?u=admin'
+    });
+    
+    res.send("✅ Database Seeded! Login with admin@staffnet.com / password123");
+  } catch (e) {
+    res.status(500).send("Error seeding: " + e.message);
+  }
 });
 
 const PORT = 5000;
