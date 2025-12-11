@@ -21,8 +21,9 @@ export default function Admin() {
 
   useEffect(() => {
     const user = getCurrentUser();
-    if (user?.access_level !== 'Admin') {
-      // navigate("/"); 
+    // Check if user exists and is Admin
+    if (!user || user.access_level !== 'Admin') {
+      // Allow render to show "Access Denied" UI
     } else {
       setIsAdmin(true);
     }
@@ -33,6 +34,7 @@ export default function Admin() {
       <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
         <div className="p-4 bg-red-500/10 rounded-full text-red-500"><Lock size={48} /></div>
         <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+        <p className="text-gray-400">Only Admins can access this panel.</p>
         <Button onClick={() => navigate("/")}>Go Back Home</Button>
       </div>
     );
@@ -76,7 +78,7 @@ export default function Admin() {
                   </td>
                   <td className="p-4 text-sm text-white">{u.job_title}</td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold text-white ${u.access_level === 'Admin' ? 'bg-red-600' : u.access_level === 'Manager' ? 'bg-orange-500' : 'bg-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-bold text-white ${u.roleColor}`}>
                       {u.access_level}
                     </span>
                   </td>
@@ -105,9 +107,9 @@ export default function Admin() {
               <div>
                 <label className="text-xs text-gray-400 font-bold">Access Level</label>
                 <select value={newUser.access_level} onChange={e => setNewUser({...newUser, access_level: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1">
-                  <option value="Staff">Staff</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Admin">Admin</option>
+                  <option value="Staff">Staff (Can View/Submit)</option>
+                  <option value="Manager">Manager (Can Assign/Approve)</option>
+                  <option value="Admin">Admin (Full Control)</option>
                 </select>
               </div>
             </div>
