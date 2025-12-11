@@ -1,21 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStaff } from "@/hooks/useData";
-import { Shield, UserPlus, Trash2 } from "lucide-react";
+import { Shield, UserPlus, Trash2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useNavigate } from "react-router-dom";
 
 export default function Admin() {
   const { staff, roles, fireStaff, addStaff, createRole } = useStaff();
   const [activeTab, setActiveTab] = useState<'staff' | 'create' | 'roles'>('staff');
-  
-  // Added Password field
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Staff' });
   const [newRole, setNewRole] = useState({ name: '', color: 'bg-gray-500' });
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // SECURITY CHECK
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('staffnet_user') || '{}');
+    if (user.role !== 'Admin') {
+      // Redirect or Show Error
+      // navigate("/"); // Optional: Auto redirect
+    } else {
+      setIsAdmin(true);
+    }
+  }, [navigate]);
+
+  if (!isAdmin) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+        <div className="p-4 bg-red-500/10 rounded-full text-red-500"><Lock size={48} /></div>
+        <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+        <p className="text-gray-400">You do not have permission to view this page.</p>
+        <Button onClick={() => navigate("/")}>Go Back Home</Button>
+      </div>
+    );
+  }
 
   const handleCreateUser = (e: any) => {
     e.preventDefault();
-    // Call addStaff with password
     addStaff(newUser.name, newUser.email, newUser.role, newUser.password);
-    alert(`User ${newUser.name} created! They can now login.`);
+    alert(`User ${newUser.name} created!`);
     setNewUser({ name: '', email: '', password: '', role: 'Staff' });
   };
 
@@ -64,10 +86,7 @@ export default function Admin() {
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div><label className="text-xs text-gray-400 font-bold">Name</label><input required value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
             <div><label className="text-xs text-gray-400 font-bold">Email</label><input required value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
-            
-            {/* Password Field */}
             <div><label className="text-xs text-gray-400 font-bold">Password</label><input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
-            
             <div><label className="text-xs text-gray-400 font-bold">Role</label><select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1">{roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select></div>
             <Button className="w-full mt-4">Create User</Button>
           </form>
@@ -87,4 +106,4 @@ export default function Admin() {
       )}
     </div>
   );
-      }
+                                                                                                                 }
