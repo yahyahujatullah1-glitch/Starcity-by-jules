@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
 export default function Login() {
@@ -13,18 +13,20 @@ export default function Login() {
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
+      const res = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
       });
 
-      if (error) throw error;
+      const data = await res.json();
 
-      if (data.session) {
+      if (res.ok) {
         window.location.href = "/";
+      } else {
+        throw new Error(data.error);
       }
     } catch (err: any) {
-      console.error("Login Error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -42,35 +44,14 @@ export default function Login() {
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
             <label className="text-xs font-bold text-zinc-500 uppercase">Email</label>
-            <input 
-              type="email" 
-              required
-              value={form.email}
-              onChange={e => setForm({...form, email: e.target.value})}
-              className="w-full pl-4 py-3 bg-black border border-zinc-800 rounded-xl text-white focus:border-orange-500 outline-none"
-              placeholder="admin@staffnet.com"
-            />
+            <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full pl-4 py-3 bg-black border border-zinc-800 rounded-xl text-white focus:border-orange-500 outline-none" placeholder="admin@staffnet.com" />
           </div>
-
           <div className="space-y-2">
             <label className="text-xs font-bold text-zinc-500 uppercase">Password</label>
-            <input 
-              type="password" 
-              required
-              value={form.password}
-              onChange={e => setForm({...form, password: e.target.value})}
-              className="w-full pl-4 py-3 bg-black border border-zinc-800 rounded-xl text-white focus:border-orange-500 outline-none"
-              placeholder="password123"
-            />
+            <input type="password" required value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full pl-4 py-3 bg-black border border-zinc-800 rounded-xl text-white focus:border-orange-500 outline-none" placeholder="password123" />
           </div>
-
           {error && <div className="p-3 bg-red-500/10 text-red-500 text-sm rounded-lg text-center">{error}</div>}
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
             {loading ? <Loader2 className="animate-spin" size={20} /> : <>Sign In <ArrowRight size={18} /></>}
           </button>
         </form>
