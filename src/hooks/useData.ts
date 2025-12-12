@@ -1,155 +1,166 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from "react";
+import supabase from "@/lib/supabase";
 
-// --- HELPERS ---
+/* ============================
+   🔐 AUTH HELPER
+============================= */
 export const getCurrentUser = () => {
+  const data = localStorage.getItem("user");
+  if (!data) return null;
   try {
-    return JSON.parse(localStorage.getItem('staffnet_user') || 'null');
-  } catch (e) { return null; }
-};
-
-export const loginUser = async (email: string, pass: string) => {
-  const { data } = await supabase.from('users').select('*').eq('email', email).eq('password', pass).single();
-  if (data) {
-    return {
-      ...data,
-      access_level: data.access_level || 'Staff',
-      job_title: data.job_title || 'Employee'
-    };
+    return JSON.parse(data);
+  } catch {
+    return null;
   }
-  return null;
 };
 
-const getRoleColor = (level: string) => {
-  if (level === 'Admin') return 'bg-red-600';
-  if (level === 'Manager') return 'bg-orange-500';
-  return 'bg-blue-600';
-};
 
-// --- STAFF HOOK ---
+/* ============================
+   👥 FETCH USERS (STAFF)
+============================= */
 export function useStaff() {
-  const [staff, setStaff] = useState<any[]>([]);
-  
+  const [staff, setStaff] = useState([]);
+
   const fetchStaff = async () => {
-    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-    if (data) {
-      const formatted = data.map(u => ({
-        ...u,
-        access_level: u.access_level || 'Staff',
-        job_title: u.job_title || 'Employee',
-        roleColor: getRoleColor(u.access_level || 'Staff')
-      }));
-      setStaff(formatted);
-    }
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, job_title, access_level, avatar_url")
+      .order("created_at", { ascending: false });
+
+    if (!error) setStaff(data);
   };
 
   useEffect(() => {
     fetchStaff();
-    const ch = supabase.channel('users').on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchStaff).subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    const channel = supabase
+      .channel("users-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        fetchStaff
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
-  const addStaff = async (name: string, email: string, access_level: string, job_title: string, password: string) => {
-    await supabase.from('users').insert([{
-      full_name: name,
-      email,
-      password,
-      access_level,
-      job_title,
-      avatar_url: `https://i.pravatar.cc/150?u=${Date.now()}`
-    }]);
-  };
-
-  const fireStaff = async (id: string) => {
-    await supabase.from('users').delete().eq('id', id);
-  };
-
-  return { staff, refresh: fetchStaff, addStaff, fireStaff };
+  return { staff };
 }
 
-// --- TASKS HOOK (FIXED) ---
+
+/* ============================
+   📝 TASK MANAGEMENT HOOK
+   (Matches your real SQL)
+============================= */
 export function useTasks() {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState([]);
 
   const fetchTasks = async () => {
-    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
-    const { data: users } = await supabase.from('users').select('*');
+    const { data, error } = await supabase
+      .from("tasks")
+      .select(
+        `
+        *,
+        user:assigned_to (
+          id,
+          full_name,
+          avatar_url,
+          job_title
+        )
+      `
+      )
+      .order("created_at", { ascending: false });
 
-    if (data && users) {
-      const merged = data.map(t => {
-        const assignee = users.find(u => u.id === t.assigned_to);
-        return { 
-          ...t, 
-          profiles: assignee || { avatar_url: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', full_name: 'Unassigned' } 
-        };
-      });
-      setTasks(merged);
-    }
+    if (!error) setTasks(data);
   };
 
   useEffect(() => {
     fetchTasks();
-    const ch = supabase.channel('tasks').on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchTasks).subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    const channel = supabase
+      .channel("tasks-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks" },
+        fetchTasks
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
-  const addTask = async (title: string, description: string, date: string, assignedTo: string) => {
-    await supabase.from('tasks').insert([{ 
-      title, 
-      description, 
-      due_date: date, 
-      assigned_to: assignedTo, 
-      status: 'Todo',
-      proof_status: 'none'
-    }]);
+  /* CREATE TASK */
+  const addTask = async (title, description, due_date, assigned_to) => {
+    const { error } = await supabase.from("tasks").insert({
+      title,
+      description,
+      due_date,
+      status: "Todo",
+      priority: "Normal",
+      proof_url: null,
+      proof_status: "pending",
+      assigned_to
+    });
+
+    if (error) throw error;
   };
 
-  const submitProof = async (taskId: string, link: string) => {
-    await supabase.from('tasks').update({ proof_url: link, proof_status: 'pending', status: 'Review' }).eq('id', taskId);
+  /* SUBMIT PROOF */
+  const submitProof = async (taskId, proofUrl) => {
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        proof_url: proofUrl,
+        proof_status: "pending"
+      })
+      .eq("id", taskId);
+
+    if (error) throw error;
   };
 
-  const reviewTask = async (taskId: string, status: 'approved' | 'rejected') => {
-    const newStatus = status === 'approved' ? 'Done' : 'In Progress';
-    await supabase.from('tasks').update({ proof_status: status, status: newStatus }).eq('id', taskId);
+  /* MANAGER REVIEW */
+  const reviewTask = async (taskId, status) => {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ proof_status: status })
+      .eq("id", taskId);
+
+    if (error) throw error;
   };
 
-  return { tasks, refresh: fetchTasks, addTask, submitProof, reviewTask };
+  return { tasks, addTask, submitProof, reviewTask };
 }
 
-// --- CHAT HOOK ---
-export function useChat() {
-  const [messages, setMessages] = useState<any[]>([]);
 
-  const fetchMessages = async () => {
-    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    const { data: users } = await supabase.from('users').select('*');
+/* ============================
+   🔑 AUTH LOGIN HOOK
+============================= */
+export function useAuth() {
+  const [loading, setLoading] = useState(false);
 
-    if (data && users) {
-      const merged = data.map(m => {
-        const sender = users.find(u => u.id === m.sender_id);
-        return { 
-          ...m, 
-          profiles: sender || { full_name: 'Unknown', job_title: 'Guest', avatar_url: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' } 
-        };
-      });
-      setMessages(merged);
-    }
+  const loginUser = async (email, pass) => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .eq("password", pass) // 🔥 Replace with hashed auth later!
+      .single();
+
+    setLoading(false);
+
+    if (error || !data) return null;
+
+    localStorage.setItem("user", JSON.stringify(data));
+    return data;
   };
 
-  useEffect(() => {
-    fetchMessages();
-    const ch = supabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, fetchMessages).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
-
-  const sendMessage = async (text: string) => {
-    const session = getCurrentUser();
-    if (session?.id) {
-      await supabase.from('messages').insert([{ content: text, sender_id: session.id }]);
-    }
+  const logout = () => {
+    localStorage.removeItem("user");
+    location.reload();
   };
 
-  return { messages, sendMessage };
+  return { loginUser, logout, loading };
 }
-
-export function useAdmin() { return { logs: [] }; }
