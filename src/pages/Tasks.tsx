@@ -1,4 +1,4 @@
-import { useTasks, getCurrentUser } from "@/hooks/useData";
+import { useTasks, useStaff, getCurrentUser } from "@/hooks/useData";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useState } from "react";
@@ -16,6 +16,7 @@ import {
 
 export default function Tasks() {
   const { tasks = [], addTask, submitProof, reviewTask } = useTasks();
+  const { staff } = useStaff(); // ✅ Added: Fetch staff list
   const [isOpen, setIsOpen] = useState(false);
   const [detailTask, setDetailTask] = useState<any>(null);
   const [proofLink, setProofLink] = useState("");
@@ -246,14 +247,12 @@ export default function Tasks() {
                 className="w-full bg-background border border-border rounded p-2 text-white mt-1"
               >
                 <option value="">Select a staff member...</option>
-                {tasks.length > 0 &&
-                  [...new Map(tasks.map((t: any) => [t.user?.id, t.user])).values()]
-                    .filter(Boolean)
-                    .map((u: any) => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name} ({u.job_title})
-                      </option>
-                    ))}
+                {/* ✅ Fixed: Now using staff from useStaff() hook */}
+                {staff.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.full_name} ({s.job_title})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -392,4 +391,4 @@ export default function Tasks() {
       )}
     </div>
   );
-                      }
+      }
