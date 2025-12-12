@@ -21,9 +21,8 @@ export default function Admin() {
 
   useEffect(() => {
     const user = getCurrentUser();
-    // Check if user exists and is Admin
     if (!user || user.access_level !== 'Admin') {
-      // Allow render to show "Access Denied" UI
+      // Not admin
     } else {
       setIsAdmin(true);
     }
@@ -42,9 +41,35 @@ export default function Admin() {
 
   const handleCreateUser = async (e: any) => {
     e.preventDefault();
-    await addStaff(newUser.name, newUser.email, newUser.access_level, newUser.job_title, newUser.password);
-    alert(`User ${newUser.name} created!`);
-    setNewUser({ name: '', email: '', password: '', access_level: 'Staff', job_title: '' });
+    try {
+      await addStaff(newUser.name, newUser.email, newUser.access_level, newUser.job_title, newUser.password);
+      alert(`User ${newUser.name} created!`);
+      setNewUser({ name: '', email: '', password: '', access_level: 'Staff', job_title: '' });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      alert("Failed to create user");
+    }
+  };
+
+  const handleDeleteStaff = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to remove ${name}?`)) {
+      try {
+        await fireStaff(id);
+        alert("Staff member removed");
+      } catch (error) {
+        console.error("Error deleting staff:", error);
+        alert("Failed to delete staff member");
+      }
+    }
+  };
+
+  // Helper function to get role color
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Admin': return 'bg-red-500/20 text-red-500';
+      case 'Manager': return 'bg-blue-500/20 text-blue-500';
+      default: return 'bg-green-500/20 text-green-500';
+    }
   };
 
   return (
@@ -70,21 +95,36 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {staff.map(u => (
-                <tr key={u.id} className="hover:bg-white/5">
-                  <td className="p-4 font-medium text-gray-200">
-                    {u.full_name}
-                    <div className="text-xs text-gray-500">{u.email}</div>
+              {staff.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                    No staff members found. Add one to get started.
                   </td>
-                  <td className="p-4 text-sm text-white">{u.job_title}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold text-white ${u.roleColor}`}>
-                      {u.access_level}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right"><button onClick={() => fireStaff(u.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded"><Trash2 size={16}/></button></td>
                 </tr>
-              ))}
+              ) : (
+                staff.map(u => (
+                  <tr key={u.id} className="hover:bg-white/5">
+                    <td className="p-4 font-medium text-gray-200">
+                      {u.full_name}
+                      <div className="text-xs text-gray-500">{u.email}</div>
+                    </td>
+                    <td className="p-4 text-sm text-white">{u.job_title}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${getRoleColor(u.access_level)}`}>
+                        {u.access_level}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button 
+                        onClick={() => handleDeleteStaff(u.id, u.full_name)} 
+                        className="text-red-500 hover:bg-red-500/10 p-2 rounded"
+                      >
+                        <Trash2 size={16}/>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -96,7 +136,7 @@ export default function Admin() {
           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><UserPlus className="text-primary"/> Create User</h3>
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div><label className="text-xs text-gray-400 font-bold">Full Name</label><input required value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
-            <div><label className="text-xs text-gray-400 font-bold">Email</label><input required value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
+            <div><label className="text-xs text-gray-400 font-bold">Email</label><input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
             <div><label className="text-xs text-gray-400 font-bold">Password</label><input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-background border border-border rounded p-2 text-white mt-1" /></div>
             
             <div className="grid grid-cols-2 gap-4">
