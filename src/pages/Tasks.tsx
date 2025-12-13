@@ -172,7 +172,6 @@ export default function Tasks() {
             >
               <option value="all">All Tasks</option>
               <option value="Todo">Todo</option>
-              <option value="In Progress">In Progress</option>
               <option value="Review">Review</option>
               <option value="Approved">Approved</option>
               <option value="Done">Done</option>
@@ -348,20 +347,6 @@ export default function Tasks() {
               </div>
             </div>
 
-            {/* Status Update - Only show for assigned user and not Done */}
-            {detailTask.assigned_to === currentUser?.id && detailTask.status !== "Done" && detailTask.status === "Todo" && (
-              <div className="border-t border-border pt-4">
-                <h4 className="font-bold text-gray-300 mb-3 text-sm">Task Actions</h4>
-                <button
-                  onClick={() => handleStatusChange(detailTask.id, "In Progress")}
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition text-sm disabled:opacity-50"
-                >
-                  Start Working on This Task
-                </button>
-              </div>
-            )}
-
             {/* Mark as Done - Only after proof approved */}
             {detailTask.assigned_to === currentUser?.id && 
              detailTask.status === "Approved" && (
@@ -437,11 +422,11 @@ export default function Tasks() {
               ) : (
                 // No proof yet OR proof was rejected
                 detailTask.assigned_to === currentUser?.id ? (
-                  detailTask.status === "In Progress" || (detailTask.status === "In Progress" && detailTask.proof_status === "rejected") ? (
+                  detailTask.status === "Todo" || detailTask.status === "In Progress" ? (
                     <form onSubmit={handleSubmitProof} className="space-y-3">
                       {detailTask.proof_status === "rejected" && (
                         <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-2 rounded text-sm mb-2">
-                          Previous proof was rejected. Please submit a new proof link.
+                          ❌ Previous proof was rejected. Please submit a new proof link.
                         </div>
                       )}
                       <input
@@ -458,7 +443,7 @@ export default function Tasks() {
                     </form>
                   ) : (
                     <div className="bg-white/5 p-4 rounded-lg border border-white/10 text-center text-gray-400 text-sm">
-                      {detailTask.status === "Todo" ? "Start the task to submit proof of work." : "Complete your work and submit proof."}
+                      Complete your work and submit proof.
                     </div>
                   )
                 ) : (
