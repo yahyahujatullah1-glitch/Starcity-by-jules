@@ -101,7 +101,6 @@ export function useTasks() {
     if (error) {
       console.error("Error fetching tasks:", error);
     } else {
-      console.log("Tasks fetched:", data); // Debug log
       setTasks(data || []);
     }
   };
@@ -121,54 +120,68 @@ export function useTasks() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  /* CREATE TASK */
-  const addTask = async (title: string, description: string, due_date: string, assigned_to: string) => {
+  /* =====================
+     CREATE TASK
+  ====================== */
+  const addTask = async (
+    title: string,
+    description: string,
+    due_date: string,
+    assigned_to: string
+  ) => {
     const { error } = await supabase.from("tasks").insert({
       title,
       description,
       due_date,
+      assigned_to,
       status: "Todo",
-      priority: "Normal",
-      proof_url: null,
-      proof_status: "pending",
-      assigned_to
+      proof_status: null,   // ✅ FIXED
+      proof_url: null
     });
 
     if (error) throw error;
   };
 
-  /* SUBMIT PROOF */
+  /* =====================
+     SUBMIT PROOF
+     → moves task to Review
+  ====================== */
   const submitProof = async (taskId: string, proofUrl: string) => {
     const { error } = await supabase
       .from("tasks")
       .update({
         proof_url: proofUrl,
         proof_status: "pending",
-        status: "Review"  // ✅ Change task status to Review when proof submitted
+        status: "Review"
       })
       .eq("id", taskId);
 
     if (error) throw error;
   };
 
-  /* MANAGER REVIEW */
-  const reviewTask = async (taskId: string, proofStatus: string) => {
-    // ✅ When approved, keep status as Review (staff will mark Done)
-    // ✅ When rejected, send back to In Progress
-    const taskStatus = proofStatus === "approved" ? "Review" : "In Progress";
-    
+  /* =====================
+     MANAGER REVIEW
+  ====================== */
+  const reviewTask = async (
+    taskId: string,
+    proofStatus: "approved" | "rejected"
+  ) => {
+    const update =
+      proofStatus === "approved"
+        ? { proof_status: "approved" }
+        : { proof_status: "rejected", status: "In Progress" };
+
     const { error } = await supabase
       .from("tasks")
-      .update({ 
-        proof_status: proofStatus,
-        status: taskStatus
-      })
+      .update(update)
       .eq("id", taskId);
 
     if (error) throw error;
   };
 
-  /* UPDATE TASK STATUS */
+  /* =====================
+     UPDATE TASK STATUS
+  ====================== */
   const updateTaskStatus = async (taskId: string, status: string) => {
     const { error } = await supabase
       .from("tasks")
@@ -178,10 +191,14 @@ export function useTasks() {
     if (error) throw error;
   };
 
-  return { tasks, addTask, submitProof, reviewTask, updateTaskStatus };
+  return {
+    tasks,
+    addTask,
+    submitProof,
+    reviewTask,
+    updateTaskStatus
+  };
 }
-
-
 /* ============================
    💬 CHAT SYSTEM
 ============================= */
