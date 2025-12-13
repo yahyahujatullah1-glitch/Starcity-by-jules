@@ -345,30 +345,33 @@ export default function Tasks() {
               </div>
             </div>
 
-            {/* Status Update (for assigned user) */}
-            {detailTask.assigned_to === currentUser?.id && detailTask.status !== "Done" && (
+            {/* Status Update - Only show for assigned user and not Done */}
+            {detailTask.assigned_to === currentUser?.id && detailTask.status !== "Done" && detailTask.status === "Todo" && (
               <div className="border-t border-border pt-4">
-                <h4 className="font-bold text-gray-300 mb-3 text-sm">Update Status</h4>
-                <div className="flex gap-2">
-                  {detailTask.status === "Todo" && (
-                    <button
-                      onClick={() => handleStatusChange(detailTask.id, "In Progress")}
-                      disabled={loading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition text-sm disabled:opacity-50"
-                    >
-                      Start Task
-                    </button>
-                  )}
-                  {detailTask.status === "In Progress" && detailTask.proof_url && detailTask.proof_status === "approved" && (
-                    <button
-                      onClick={() => handleStatusChange(detailTask.id, "Done")}
-                      disabled={loading}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded transition text-sm disabled:opacity-50"
-                    >
-                      Mark as Done
-                    </button>
-                  )}
-                </div>
+                <h4 className="font-bold text-gray-300 mb-3 text-sm">Task Actions</h4>
+                <button
+                  onClick={() => handleStatusChange(detailTask.id, "In Progress")}
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition text-sm disabled:opacity-50"
+                >
+                  Start Working on This Task
+                </button>
+              </div>
+            )}
+
+            {/* Mark as Done - Only after proof approved */}
+            {detailTask.assigned_to === currentUser?.id && 
+             detailTask.status === "In Progress" && 
+             detailTask.proof_url && 
+             detailTask.proof_status === "approved" && (
+              <div className="border-t border-border pt-4">
+                <button
+                  onClick={() => handleStatusChange(detailTask.id, "Done")}
+                  disabled={loading}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Check size={16} /> Mark Task as Complete
+                </button>
               </div>
             )}
 
@@ -464,4 +467,4 @@ export default function Tasks() {
       )}
     </div>
   );
-                           }
+      }
